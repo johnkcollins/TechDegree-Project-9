@@ -8,7 +8,7 @@ module.exports = (sequelize) => {
           primaryKey: true,
           autoIncrement: true
         },
-        fname: {
+        firstName: {
           type: Sequelize.STRING,
           allowNull: false,
           validate: {
@@ -20,7 +20,7 @@ module.exports = (sequelize) => {
             }
           }
         },
-        lname: {
+        lastName: {
           type: Sequelize.STRING,
           allowNull: false,
           validate: {
@@ -29,6 +29,18 @@ module.exports = (sequelize) => {
             },
             notEmpty: {
               msg: 'Please provide a value for "last name"'
+            }
+          }
+        },
+        emailAddress: {
+          type: Sequelize.STRING,
+          allowNull: false,
+          validate: {
+            notNull: {
+              msg: 'Please provide a value for "email"'
+            },
+            notEmpty: {
+              msg: 'Please provide a value for "email"'
             }
           }
         },
@@ -53,7 +65,16 @@ module.exports = (sequelize) => {
           }
         }
       },
-
       {sequelize});
+
+  User.associate = (models) => {
+    User.hasMany(models.Course, {
+      foreignKey: {
+        fieldName: 'userId',
+        allowNull: false,
+      },
+    });
+  };
+
   return User;
 };
