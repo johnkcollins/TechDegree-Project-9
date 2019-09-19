@@ -12,7 +12,7 @@ const auth = require('basic-auth');
 //SEQUELIZE
 const sequelize = new Sequelize({
   dialect: 'sqlite',
-  storage: './fsjstd-restapi.db',
+  storage: './fsjstd-restapi.db'
 });
 //Resets the sequencing to zero so new entries replace missing IDs from deleted entries
 sequelize.query("UPDATE SQLITE_SEQUENCE SET SEQ=0");
@@ -234,22 +234,17 @@ app.post('/api/courses', authenticateUser,
         async (req, res) => {
           //return authenticated user
           const user = req.currentUser;
-
           const errors = validationResult(req);
-
           if (!errors.isEmpty()) {
             // Use the Array `map()` method to get a list of error messages.
             const errorMessages = errors.array().map(error => error.msg);
-
             // Return the validation errors to the client.
             res.status(400).json({errors: errorMessages});
           } else {
-
             //Generates a new user from the body attributes
             const newCourse = req.body;
-
             // Add the user to the `users` table.
-            const createdCourse = Course.findOrCreate({where: newCourse});
+            const createdCourse = await Course.findOrCreate({where: newCourse});
             let findCourse = await Course.findAll({where: newCourse});
             res.location(`/api/courses/${findCourse[0].id}`);
             res.status(201).end();
@@ -278,13 +273,18 @@ app.put('/api/courses/:id', authenticateUser,
             // Return the validation errors to the client.
             res.status(400).json({errors: errorMessages});
           } else {
-            let id = req.params.id;
-            let updatedCourse = req.body;
-            Course.update(updatedCourse, {where: {id}});
-
-            //Updates a course from the body attributes in the PUT request
-            res.location(`/api/courses/${id}`);
-            res.status(204).end();
+            let courses = await sequelize.query(`SELECT courses.id, title, description, estimatedTime, materialsNeeded, userId, firstName, lastName, emailAddress, password FROM courses INNER JOIN users ON Courses.userId = Users.Id WHERE Courses.userId IS ${user.id}`);
+            let bodyId = parseInt(req.params.id);
+            if (user.id === bodyId) {
+              let id = req.params.id;
+              let updatedCourse = req.body;
+              Course.update(updatedCourse, {where: {id}});
+              //Updates a course from the body attributes in the PUT request
+              res.location(`/api/courses/${id}`);
+              res.status(204).end();
+            } else {
+              res.status(403).json({errors: "You do not have permission to update this course"}).end();
+            }
           }
         })
 );
@@ -293,6 +293,7 @@ app.put('/api/courses/:id', authenticateUser,
 app.delete('/api/courses/:id', authenticateUser,
     asyncHandler(
         async (req, res) => {
+          const user = req.currentUser;
           const errors = validationResult(req);
           if (!errors.isEmpty()) {
             // Use the Array `map()` method to get a list of error messages.
@@ -300,13 +301,15 @@ app.delete('/api/courses/:id', authenticateUser,
             // Return the validation errors to the client.
             res.status(400).json({errors: errorMessages});
           } else {
-            let id = req.params.id;
-            Course.destroy({where: {id}});
-            //Updates a course from the body attributes in the PUT request
-            //Resets Sequelize sequencing
-
-            res.location(`/api/courses`);
-            res.status(204).end();
+            let bodyId = parseInt(req.params.id);
+            if (user.id === bodyId) {
+              let id = req.params.id;
+              Course.destroy({where: {id}});
+              res.location(`/api/courses`);
+              res.status(204).end();
+            } else {
+              res.status(403).json({errors: "You do not have permission to delete this course"}).end();
+            }
           }
         })
 );
