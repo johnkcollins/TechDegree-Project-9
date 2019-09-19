@@ -34,14 +34,13 @@ app.use(express.json());
 
 //This array is used to keep track of user records as they are created
 let users = [];
-let courses = [];
 let messages = [];
 
 
 // setup morgan which gives us http request logging
 app.use(morgan('dev'));
 
-// TODO setup your api routes here
+
 sequelize
     .authenticate()
     .then(() => {
@@ -124,8 +123,8 @@ function asyncHandler(cb) {
 app.get('/', (req, res) => {
   res.json({
     message: 'Welcome to the REST API project!  The following routes are ' +
-        'accessible /api/users' +
-        '/api/courses' +
+        'accessible: /api/users, ' +
+        '/api/courses, ' +
         '/api/course/:id' + '.'
   });
 });
@@ -134,10 +133,10 @@ app.get('/', (req, res) => {
 //Returns the current authenticated user
 app.get('/api/users', authenticateUser, asyncHandler(async (req, res) => {
   //return authenticated user
-  const user = req.currentUser;
-
-  let users = await User.findAll({});
-  res.json(users);
+  const currentUser = req.currentUser;
+  let users = await User.findAll({attributes: ["id", "firstName", "lastName", "emailAddress"]});
+  const user = users.find(u => u.emailAddress === currentUser.emailAddress);
+  res.json(user);
   res.status(200).end();
 }));
 
@@ -185,8 +184,9 @@ app.post('/api/users',
             // Return the validation errors to the client.
             res.status(400).json({errors: errorMessages});
           } else {
+            let users = await User.findAll({});
             const user = users.find(u => u.emailAddress === req.body.emailAddress);
-            if (user) {
+            if (!user) {
               let password = req.body.password;
               let hashedPassword = bcryptjs.hashSync(password, 10);
               //Generates a new user from the body attributes
@@ -202,7 +202,10 @@ app.post('/api/users',
               res.status(201).end();
             } else {
               // Return the validation errors to the client.
-              res.status(400).json({errors: "That email address is already registered, please login with a valid password"});
+              res.status(400).json({
+                errors: "That email address is already registered, unable to create user. " +
+                    "Please try again with a new email address"
+              });
             }
           }
         })
@@ -210,7 +213,7 @@ app.post('/api/users',
 
 //Returns the current authenticated user
 app.get('/api/courses', asyncHandler(async (req, res) => {
-      let courses = await Course.findAll();
+  let courses = await Course.findAll({include: [{model: User}]});
       //return courses
       res.json(courses);
       res.status(200).end();
@@ -245,10 +248,9 @@ app.post('/api/courses', authenticateUser,
             const newCourse = req.body;
 
             // Add the user to the `users` table.
-            Course.findOrCreate({where: newCourse});
-            const allCourses = Course.findAll();
-            console.log(allCourses);
-            res.location(`/${req.body.title}`);
+            const createdCourse = Course.findOrCreate({where: newCourse});
+            let findCourse = await Course.findAll({where: newCourse});
+            res.location(`/api/courses/${findCourse[0].id}`);
             res.status(201).end();
           }
         })
