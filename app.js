@@ -314,7 +314,8 @@ app.delete('/api/courses/:id', authenticateUser,
 //Returns all courses including the user that owns each course for the provided course ID
 app.get('/api/courses/:id', asyncHandler(async (req, res) => {
       let id = req.params.id;
-      let courses = await Course.findAll({where: {userId: `${id}`}});
+  //let courses = await Course.findAll({where: {userId: `${id}`}});
+  let courses = await sequelize.query(`SELECT courses.id, title, description, estimatedTime, materialsNeeded, userId, firstName, lastName, emailAddress, password FROM courses INNER JOIN users ON Courses.userId = Users.Id WHERE Courses.userId IS ${id}`);
       //return courses
       res.json(courses);
       res.status(200).end();
