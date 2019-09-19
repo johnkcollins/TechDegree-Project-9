@@ -213,8 +213,10 @@ app.post('/api/users',
 
 //Returns the current authenticated user
 app.get('/api/courses', asyncHandler(async (req, res) => {
-  let courses = await Course.findAll({include: [{model: User}]});
-      //return courses
+  let courses = await sequelize.query("SELECT courses.id, title, description, estimatedTime, materialsNeeded, userId, firstName, lastName, emailAddress, password FROM courses INNER JOIN users ON Courses.userId = Users.Id");
+  ;
+  console.log(courses);
+  //return courses
       res.json(courses);
       res.status(200).end();
     }
