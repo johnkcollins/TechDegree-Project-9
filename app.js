@@ -15,7 +15,7 @@ const sequelize = new Sequelize({
   storage: './fsjstd-restapi.db'
 });
 //Resets the sequencing to zero so new entries replace missing IDs from deleted entries
-sequelize.query("UPDATE SQLITE_SEQUENCE SET SEQ=0");
+//sequelize.query("UPDATE SQLITE_SEQUENCE SET SEQ=0");
 const db = {sequelize, Sequelize, models: {}};
 db.models.User = require('./models/User')(sequelize);
 db.models.Course = require('./models/Course')(sequelize);
@@ -125,7 +125,7 @@ app.get('/', (req, res) => {
     message: 'Welcome to the REST API project!  The following routes are ' +
         'accessible: /api/users, ' +
         '/api/courses, ' +
-        '/api/course/:id' + '.'
+        '/api/courses/:id' + '.'
   });
 });
 
@@ -213,7 +213,7 @@ app.post('/api/users',
 
 //Returns the current authenticated user
 app.get('/api/courses', asyncHandler(async (req, res) => {
-  let courses = await sequelize.query("SELECT courses.id, title, description, estimatedTime, materialsNeeded, userId, firstName, lastName, emailAddress, password FROM courses INNER JOIN users ON Courses.userId = Users.Id");
+  let courses = await sequelize.query("SELECT courses.id, title, description, estimatedTime, materialsNeeded, userId, firstName, lastName, emailAddress, password FROM courses INNER JOIN users ON Courses.userId = Users.Id", {type: sequelize.QueryTypes.SELECT});
   console.log(courses);
   //return courses
       res.json(courses);
@@ -273,9 +273,8 @@ app.put('/api/courses/:id', authenticateUser,
             // Return the validation errors to the client.
             res.status(400).json({errors: errorMessages});
           } else {
-            let courses = await sequelize.query(`SELECT courses.id, title, description, estimatedTime, materialsNeeded, userId, firstName, lastName, emailAddress, password FROM courses INNER JOIN users ON Courses.userId = Users.Id WHERE Courses.userId IS ${user.id}`);
-            let bodyId = parseInt(req.params.id);
-            if (user.id === bodyId) {
+            let courses = await sequelize.query(`SELECT courses.id, title, description, estimatedTime, materialsNeeded, userId, firstName, lastName, emailAddress, password FROM courses INNER JOIN users ON Courses.userId = Users.Id WHERE Courses.userId IS ${user.id} AND Courses.id IS ${req.params.id}`, {type: sequelize.QueryTypes.SELECT});
+            if (courses.length > 0) {
               let id = req.params.id;
               let updatedCourse = req.body;
               Course.update(updatedCourse, {where: {id}});
@@ -301,8 +300,9 @@ app.delete('/api/courses/:id', authenticateUser,
             // Return the validation errors to the client.
             res.status(400).json({errors: errorMessages});
           } else {
-            let bodyId = parseInt(req.params.id);
-            if (user.id === bodyId) {
+            let courses = await sequelize.query(`SELECT courses.id, title, description, estimatedTime, materialsNeeded, userId, firstName, lastName, emailAddress, password FROM courses INNER JOIN users ON Courses.userId = Users.Id WHERE Courses.userId IS ${user.id} AND Courses.id IS ${req.params.id}`, {type: sequelize.QueryTypes.SELECT});
+            console.log(courses);
+            if (courses.length > 0) {
               let id = req.params.id;
               Course.destroy({where: {id}});
               res.location(`/api/courses`);
@@ -317,8 +317,7 @@ app.delete('/api/courses/:id', authenticateUser,
 //Returns all courses including the user that owns each course for the provided course ID
 app.get('/api/courses/:id', asyncHandler(async (req, res) => {
       let id = req.params.id;
-  //let courses = await Course.findAll({where: {userId: `${id}`}});
-  let courses = await sequelize.query(`SELECT courses.id, title, description, estimatedTime, materialsNeeded, userId, firstName, lastName, emailAddress, password FROM courses INNER JOIN users ON Courses.userId = Users.Id WHERE Courses.userId IS ${id}`);
+  let courses = await sequelize.query(`SELECT courses.id, title, description, estimatedTime, materialsNeeded, userId, firstName, lastName, emailAddress, password FROM courses INNER JOIN users ON Courses.userId = Users.Id WHERE Courses.id IS ${id}`, {type: sequelize.QueryTypes.SELECT});
       //return courses
       res.json(courses);
       res.status(200).end();
