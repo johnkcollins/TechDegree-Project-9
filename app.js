@@ -1,6 +1,7 @@
 'use strict';
 
 // load modules
+const cors = require('cors');
 const express = require('express');
 const morgan = require('morgan');
 const Sequelize = require('sequelize');
@@ -26,6 +27,9 @@ const enableGlobalErrorLogging = process.env.ENABLE_GLOBAL_ERROR_LOGGING === 'tr
 
 // create the Express app
 const app = express();
+
+//Enable ALL CORS Requests
+app.use(cors());
 
 //allows attributes from the request body to be read
 app.use(bodyParser.urlencoded({extended: false}));
