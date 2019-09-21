@@ -59,7 +59,7 @@ const authenticateUser = async (req, res, next) => {
   let message = null;
   // Parse the user's credentials from the Authorization header.
   const credentials = auth(req);
-
+  console.log(credentials);
   users = await User.findAll();
   // If the user's credentials are available...
 
@@ -86,6 +86,7 @@ const authenticateUser = async (req, res, next) => {
       }
     } else {
       message = `User not associated with email: ${credentials.email}`;
+
     }
   } else {
     message = 'Auth header not found';
@@ -218,7 +219,6 @@ app.post('/api/users',
 //Returns the current authenticated user
 app.get('/api/courses', asyncHandler(async (req, res) => {
   let courses = await sequelize.query("SELECT courses.id, title, description, estimatedTime, materialsNeeded, userId, firstName, lastName, emailAddress, password FROM courses INNER JOIN users ON Courses.userId = Users.Id", {type: sequelize.QueryTypes.SELECT});
-  console.log(courses);
   //return courses
       res.json(courses);
       res.status(200).end();
